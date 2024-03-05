@@ -8,8 +8,13 @@ import {
   NotFoundException,
   Param,
   Post,
+  Put,
 } from '@nestjs/common';
-import { CreateUserDto, User } from 'src/interface/interface';
+import {
+  CreateUserDto,
+  UpdatePasswordDto,
+  User,
+} from 'src/interface/interface';
 import { UserService } from 'src/services/user.service';
 
 @Controller('user')
@@ -66,5 +71,41 @@ export class UserController {
     );
 
     return newUser;
+  }
+  @Put(':id')
+  async updateUserPassword(
+    @Param('id') id: string,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+  ): Promise<User> {
+    if (!this.isUuid(id)) {
+      const message = 'Invalid user ID';
+      throw new BadRequestException({
+        message,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+
+    const user = await this.userService.getUserById(id);
+
+    if (!user) {
+      const message = 'User not found';
+      throw new NotFoundException({
+        message,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    }
+
+    if (user.password !== updatePasswordDto.oldPassword) {
+      const message = 'Old password is wrong';
+      throw new HttpException(
+        { message, statusCode: HttpStatus.FORBIDDEN },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    user.password = updatePasswordDto.newPassword;
+    user.updatedAt = Date.now();
+
+    return user;
   }
 }
