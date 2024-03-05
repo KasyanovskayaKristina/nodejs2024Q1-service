@@ -65,4 +65,11 @@ export class UserService {
     this.users.push(newUser);
     return newUser;
   }
+
+  async deleteUserById(id: string): Promise<void> {
+    const index = this.users.findIndex((user) => user.id === id);
+    if (index !== -1) {
+      this.users.splice(index, 1);
+    }
+  }
 }

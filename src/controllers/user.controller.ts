@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Put,
+  Delete,
 } from '@nestjs/common';
 import {
   CreateUserDto,
@@ -107,5 +108,27 @@ export class UserController {
     user.updatedAt = Date.now();
 
     return user;
+  }
+
+  @Delete(':id')
+  async deleteUserById(@Param('id') id: string): Promise<void> {
+    if (!this.isUuid(id)) {
+      const message = 'Invalid user ID';
+      throw new BadRequestException({
+        message,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+
+    const user = await this.userService.getUserById(id);
+    if (!user) {
+      const message = 'User not found';
+      throw new NotFoundException({
+        message,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    }
+
+    await this.userService.deleteUserById(id);
   }
 }
