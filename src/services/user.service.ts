@@ -52,4 +52,17 @@ export class UserService {
   async getUserById(id: string): Promise<User | undefined> {
     return this.users.find((user) => user.id === id);
   }
+
+  async createUser(login: string, password: string): Promise<User> {
+    const newUser: User = {
+      id: uuidv4(),
+      login,
+      password,
+      version: 1,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    this.users.push(newUser);
+    return newUser;
+  }
 }

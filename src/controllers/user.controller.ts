@@ -1,12 +1,15 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
+  HttpException,
   HttpStatus,
   NotFoundException,
   Param,
+  Post,
 } from '@nestjs/common';
-import { User } from 'src/interface/interface';
+import { CreateUserDto, User } from 'src/interface/interface';
 import { UserService } from 'src/services/user.service';
 
 @Controller('user')
@@ -45,5 +48,23 @@ export class UserController {
     const uuidRegex =
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
     return uuidRegex.test(id);
+  }
+
+  @Post()
+  async createUser(@Body() createUserDto: CreateUserDto): Promise<User> {
+    if (!createUserDto || !createUserDto.login || !createUserDto.password) {
+      const message = 'Login and password are required';
+      throw new HttpException(
+        { message, statusCode: HttpStatus.BAD_REQUEST },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const newUser = await this.userService.createUser(
+      createUserDto.login,
+      createUserDto.password,
+    );
+
+    return newUser;
   }
 }
