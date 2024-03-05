@@ -48,4 +48,8 @@ export class UserService {
   async getAllUsers(): Promise<User[]> {
     return this.users;
   }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    return this.users.find((user) => user.id === id);
+  }
 }
