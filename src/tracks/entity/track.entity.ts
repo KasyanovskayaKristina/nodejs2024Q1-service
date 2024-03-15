@@ -1,34 +1,33 @@
-import { v4 as uuid } from 'uuid';
-import { CreateTrackDto } from '../dto/create-track.dto';
-import { UpdateTrackDto } from '../dto/update-track.dto';
+import { Album } from 'src/albums/entity/album.entity';
+import { Artist } from 'src/artist/entity/artist.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 
+@Entity()
 export class Track {
-  readonly id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
   name: string;
+
+  @Column()
   duration: number;
-  artistId: string | null;
-  albumId: string | null;
 
-  constructor(dto: CreateTrackDto) {
-    this.id = uuid();
-    this.name = dto.name;
-    this.duration = dto.duration;
-    this.artistId = dto.artistId || null;
-    this.albumId = dto.albumId || null;
-  }
+  @ManyToOne(() => Artist, (artist) => artist.tracks, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  artist: Artist;
 
-  updateTrack(updateTrackDto: UpdateTrackDto) {
-    if (updateTrackDto.name !== undefined) {
-      this.name = updateTrackDto.name;
-    }
-    if (updateTrackDto.duration !== undefined) {
-      this.duration = updateTrackDto.duration;
-    }
-    if ('artistId' in updateTrackDto) {
-      this.artistId = updateTrackDto.artistId;
-    }
-    if ('albumId' in updateTrackDto) {
-      this.albumId = updateTrackDto.albumId;
+  @ManyToOne(() => Album, (album) => album.tracks, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  album: Album;
+
+  constructor(dto?: Partial<Track>) {
+    if (dto) {
+      Object.assign(this, dto);
     }
   }
 }

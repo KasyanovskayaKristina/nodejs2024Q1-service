@@ -8,9 +8,4 @@ export class CreateArtistDto {
 
   @IsBoolean()
   grammy: boolean;
-
-  constructor({ name, grammy }: { name: string; grammy: boolean }) {
-    this.name = name;
-    this.grammy = grammy;
-  }
 }

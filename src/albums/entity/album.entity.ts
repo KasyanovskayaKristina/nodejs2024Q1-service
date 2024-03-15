@@ -1,24 +1,35 @@
-import { v4 as uuid } from 'uuid';
-import { CreateAlbumDto } from '../dto/create-album.dto';
-import { UpdateAlbumDto } from '../dto/update-album.dto';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
+import { Artist } from 'src/artist/entity/artist.entity';
+import { Track } from 'src/tracks/entity/track.entity';
 
+@Entity()
 export class Album {
-  readonly id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
   name: string;
+
+  @Column()
   year: number;
-  artistId: string | null;
-  constructor(dto: CreateAlbumDto) {
-    this.id = uuid();
-    this.name = dto.name;
-    this.year = dto.year;
-    this.artistId = dto.artistId;
-  }
-  updateAlbum(updateAlbumDto: UpdateAlbumDto) {
-    for (const prop in updateAlbumDto) {
-      if (updateAlbumDto[prop]) {
-        this[prop] = updateAlbumDto[prop];
-      }
+
+  @ManyToOne(() => Artist, (artist) => artist.albums, { nullable: true })
+  @JoinColumn({ name: 'artistId' })
+  artist: Artist;
+
+  @OneToMany(() => Track, (track) => track.album)
+  tracks: Track[];
+
+  constructor(dto?: Partial<Album>) {
+    if (dto) {
+      Object.assign(this, dto);
     }
-    return this;
   }
 }

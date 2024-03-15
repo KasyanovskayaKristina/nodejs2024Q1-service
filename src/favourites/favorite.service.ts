@@ -1,108 +1,231 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { DbService } from 'src/db/db.service';
-import { validate as uuidValidate } from 'uuid';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Artist } from 'src/artist/entity/artist.entity';
+import { Album } from 'src/albums/entity/album.entity';
+import { Track } from 'src/tracks/entity/track.entity';
+import { Fav } from './entity/fav.entity';
+import { User } from 'src/user/entity/user.entity';
 
 @Injectable()
 export class FavoriteService {
-  constructor(private readonly dbService: DbService) {}
+  constructor(
+    @InjectRepository(Fav)
+    private favRepository: Repository<Fav>,
+    @InjectRepository(Artist)
+    private artistRepository: Repository<Artist>,
+    @InjectRepository(Album)
+    private albumRepository: Repository<Album>,
+    @InjectRepository(Track)
+    private trackRepository: Repository<Track>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) {}
 
-  findAll() {
-    return this.dbService.listAllFavourites();
-  }
+  async findAllFavs(userId: string) {
+    const favs = await this.favRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['artists', 'albums', 'tracks'],
+    });
 
-  async addArtist(id: string) {
-    await this.validateIdAndExistence(id, 'artist');
-    const artistAlreadyInFavs = await this.dbService.favs.getArtistById(id);
-    if (artistAlreadyInFavs) {
-      throw new HttpException(
-        'Artist already in favorites.',
-        HttpStatus.CONFLICT,
-      );
+    if (!favs) {
+      throw new HttpException('Favorites not found', HttpStatus.NOT_FOUND);
     }
-    await this.dbService.favs.addArtist(id);
-    return `Artist with ID: ${id} is added to favorites.`;
+
+    return favs;
   }
 
-  async removeArtist(id: string) {
-    await this.validateIdAndExistence(id, 'artist', true);
-    await this.dbService.favs.removeArtist(id);
-    return `Artist with ID: ${id} is removed from favorites.`;
-  }
-
-  async addAlbum(id: string) {
-    await this.validateIdAndExistence(id, 'album');
-    const albumAlreadyInFavs = await this.dbService.favs.getAlbumById(id);
-    if (albumAlreadyInFavs) {
-      throw new HttpException(
-        'Album already in favorites.',
-        HttpStatus.CONFLICT,
-      );
+  async addArtistToFavs(userId: string, artistId: string) {
+    const artist = await this.artistRepository.findOneBy({ id: artistId });
+    if (!artist) {
+      throw new HttpException('Artist not found', HttpStatus.NOT_FOUND);
     }
-    await this.dbService.favs.addAlbum(id);
-    return `Album with ID: ${id} is added to favorites.`;
-  }
 
-  async removeAlbum(id: string) {
-    await this.validateIdAndExistence(id, 'album', true);
-    await this.dbService.favs.removeAlbum(id);
-    return `Album with ID: ${id} is removed from favorites.`;
-  }
-
-  async addTrack(id: string) {
-    await this.validateIdAndExistence(id, 'track');
-    const trackAlreadyInFavs = await this.dbService.favs.getTrackById(id);
-    if (trackAlreadyInFavs) {
-      throw new HttpException(
-        'Track already in favorites.',
-        HttpStatus.CONFLICT,
-      );
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
-    await this.dbService.favs.addTrack(id);
-    return `Track with ID: ${id} is added to favorites.`;
-  }
 
-  async removeTrack(id: string) {
-    await this.validateIdAndExistence(id, 'track', true);
-    await this.dbService.favs.removeTrack(id);
-    return `Track with ID: ${id} is removed from favorites.`;
-  }
+    let favs = await this.favRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['artists', 'albums', 'tracks'],
+    });
 
-  private async validateIdAndExistence(
-    id: string,
-    type: 'artist' | 'album' | 'track',
-    removal = false,
-  ) {
-    this.validateUuid(id);
-    const entityExists = await this.dbService[
-      `find${this.capitalizeFirstLetter(type)}ById`
-    ](id);
-    if (!entityExists) {
-      throw new HttpException(
-        `${this.capitalizeFirstLetter(type)} does not exist.`,
-        HttpStatus.UNPROCESSABLE_ENTITY,
-      );
+    if (!favs) {
+      favs = this.favRepository.create({
+        user,
+        artists: [artist],
+        albums: [],
+        tracks: [],
+      });
+    } else {
+      const isArtistAlreadyAdded = favs.artists.some((a) => a.id === artistId);
+      if (!isArtistAlreadyAdded) {
+        favs.artists.push(artist);
+      } else {
+        throw new HttpException(
+          'Artist is already in favorites',
+          HttpStatus.CONFLICT,
+        );
+      }
     }
-    if (
-      removal &&
-      !(await this.dbService.favs[`get${this.capitalizeFirstLetter(type)}ById`](
-        id,
-      ))
-    ) {
+
+    await this.favRepository.save(favs);
+    return favs;
+  }
+
+  async addAlbumToFavs(userId: string, albumId: string) {
+    const album = await this.albumRepository.findOneBy({ id: albumId });
+    if (!album) {
+      throw new HttpException('Album not found', HttpStatus.NOT_FOUND);
+    }
+
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    let favs = await this.favRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['artists', 'albums', 'tracks'],
+    });
+
+    if (!favs) {
+      favs = this.favRepository.create({
+        user,
+        albums: [album],
+        artists: [],
+        tracks: [],
+      });
+    } else {
+      const isAlbumAlreadyAdded = favs.albums.some((a) => a.id === albumId);
+      if (!isAlbumAlreadyAdded) {
+        favs.albums.push(album);
+      } else {
+        throw new HttpException(
+          'Album already in favorites',
+          HttpStatus.CONFLICT,
+        );
+      }
+    }
+
+    await this.favRepository.save(favs);
+    return favs;
+  }
+
+  async removeAlbumFromFavs(userId: string, albumId: string) {
+    const favs = await this.favRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['albums', 'tracks', 'artists'],
+    });
+    if (!favs) {
+      throw new HttpException('Favorites not found', HttpStatus.NOT_FOUND);
+    }
+
+    const index = favs.albums.findIndex((a) => a.id === albumId);
+    if (index > -1) {
+      favs.albums.splice(index, 1);
+      await this.favRepository.save(favs);
+    } else {
       throw new HttpException(
-        `${this.capitalizeFirstLetter(type)} not found in favorites.`,
+        'Album not found in favorites',
         HttpStatus.NOT_FOUND,
       );
     }
+
+    return favs;
   }
 
-  private validateUuid(id: string) {
-    if (!uuidValidate(id)) {
-      throw new HttpException('Invalid ID format.', HttpStatus.BAD_REQUEST);
+  async addTrackToFavs(userId: string, trackId: string) {
+    const track = await this.trackRepository.findOneBy({ id: trackId });
+    if (!track) {
+      throw new HttpException('Track not found', HttpStatus.NOT_FOUND);
     }
+
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    let favs = await this.favRepository.findOne({
+      where: { user: { id: user.id } },
+      relations: ['tracks'],
+    });
+
+    if (!favs) {
+      favs = this.favRepository.create({
+        user,
+        tracks: [track],
+        albums: [],
+        artists: [],
+      });
+    } else {
+      const alreadyAdded = favs.tracks.find((t) => t.id === trackId);
+      if (!alreadyAdded) {
+        favs.tracks.push(track);
+      } else {
+        throw new HttpException(
+          'Track already in favorites',
+          HttpStatus.CONFLICT,
+        );
+      }
+    }
+
+    await this.favRepository.save(favs);
+    return favs;
   }
 
-  private capitalizeFirstLetter(string: string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
+  async removeTrackFromFavs(userId: string, trackId: string) {
+    const favs = await this.favRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['albums', 'tracks', 'artists'],
+    });
+    if (!favs) {
+      throw new HttpException('Favorites not found', HttpStatus.NOT_FOUND);
+    }
+
+    const index = favs.tracks.findIndex((t) => t.id === trackId);
+    if (index > -1) {
+      favs.tracks.splice(index, 1);
+      await this.favRepository.save(favs);
+    } else {
+      throw new HttpException(
+        'Track not found in favorites',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return favs;
+  }
+  async removeArtistFromFavs(userId: string, artistId: string) {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const favs = await this.favRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['artists', 'albums', 'tracks'],
+    });
+
+    if (!favs) {
+      throw new HttpException(
+        'Favorites not found for the user',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const artistIndex = favs.artists.findIndex((a) => a.id === artistId);
+    if (artistIndex === -1) {
+      throw new HttpException(
+        'Artist not found in favorites',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    favs.artists.splice(artistIndex, 1);
+
+    await this.favRepository.save(favs);
+    return { message: 'Artist removed from favorites successfully' };
   }
 }

@@ -66,4 +66,5 @@ In body : {
 7. POST => http://localhost:4000/user ( check that user delete correctly)
 
 You can do a similar operation with other methods and check the server response for invalid input data in the same way.
+docker run -p 4000:4000 yourappname
 ```

@@ -1,73 +1,54 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { validate } from 'class-validator';
-import { validate as uuidValidate } from 'uuid';
-import { DbService } from 'src/db/db.service';
-import { formatValidationErrors } from 'src/errors/error';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { User } from './entity/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly databaseService: DbService) {}
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
 
-  async create(createUserDto: CreateUserDto) {
-    await this.validateDto(new CreateUserDto(createUserDto));
-    const newUser = await this.databaseService.addNewUser(createUserDto);
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const newUser = this.userRepository.create(createUserDto);
+    await this.userRepository.save(newUser);
+    delete newUser.password;
     return newUser;
   }
 
-  findAll() {
-    return this.databaseService.listUsers();
+  async findAll(): Promise<User[]> {
+    return this.userRepository.find();
   }
 
-  async findOne(id: string) {
-    this.validateUuid(id);
-    const user = await this.databaseService.findUserById(id);
-    if (!user) throw new HttpException('User not found.', HttpStatus.NOT_FOUND);
+  async findOne(id: string): Promise<User> {
+    const user = await this.userRepository.findOneBy({ id });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
     return user;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
-    this.validateUuid(id);
-    await this.validateDto(new UpdateUserDto(updateUserDto));
-
-    const user = await this.databaseService.findUserById(id);
-    if (!user) throw new HttpException('User not found.', HttpStatus.NOT_FOUND);
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.findOne(id);
 
     if (updateUserDto.oldPassword !== user.password) {
-      throw new HttpException('Incorrect password.', HttpStatus.FORBIDDEN);
+      throw new HttpException('Incorrect password', HttpStatus.FORBIDDEN);
     }
 
-    const updatedUser = await this.databaseService.changeUserPassword(
-      user,
-      updateUserDto.newPassword,
-    );
-    return updatedUser;
+    user.password = updateUserDto.newPassword;
+    await this.userRepository.save(user);
+
+    delete user.password;
+    return user;
   }
 
-  async remove(id: string) {
-    this.validateUuid(id);
-    const userExists = await this.databaseService.findUserById(id);
-    if (!userExists)
-      throw new HttpException('User not found.', HttpStatus.NOT_FOUND);
-
-    await this.databaseService.removeUserById(id);
-  }
-
-  private async validateDto(dto: any) {
-    const validationErrors = await validate(dto);
-    if (validationErrors.length > 0) {
-      const msg = formatValidationErrors(validationErrors);
-      throw new HttpException(msg, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  private validateUuid(id: string) {
-    if (!uuidValidate(id)) {
-      throw new HttpException(
-        'Invalid ID format. Please provide a valid UUID.',
-        HttpStatus.BAD_REQUEST,
-      );
+  async remove(id: string): Promise<void> {
+    const result = await this.userRepository.delete(id);
+    if (result.affected === 0) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
   }
 }

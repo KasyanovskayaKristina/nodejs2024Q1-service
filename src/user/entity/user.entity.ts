@@ -1,24 +1,46 @@
-import { v4 as uuid } from 'uuid';
 import { CreateUserDto } from '../dto/create-user.dto';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
+import { Fav } from 'src/favourites/entity/fav.entity';
 
-const getTimeStamp = (): number => Date.now();
-
+@Entity()
 export class User {
-  public readonly id: string = uuid();
-  public readonly createdAt: number = getTimeStamp();
-  public readonly login: string;
-  public password: string;
-  public version = 1;
-  public updatedAt: number = this.createdAt;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  constructor({ password, login }: CreateUserDto) {
-    this.login = login;
-    this.password = password;
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @Column({ length: 255 })
+  login: string;
+
+  @Column()
+  password: string;
+
+  @Column({ default: 1 })
+  version: number;
+
+  @OneToMany(() => Fav, (fav) => fav.user)
+  favs: Fav[];
+
+  constructor(createUserDto?: CreateUserDto) {
+    if (createUserDto) {
+      this.login = createUserDto.login;
+      this.password = createUserDto.password;
+    }
   }
 
-  public updatePassword(newPass: string) {
+  public updatePassword(newPass: string): void {
     this.password = newPass;
     this.version += 1;
-    this.updatedAt = getTimeStamp();
   }
 }

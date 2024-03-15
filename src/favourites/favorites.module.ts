@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import { DbModule } from 'src/db/db.module';
 import { FavoriteController } from './favorite.controller';
 import { FavoriteService } from './favorite.service';
 
 @Module({
-  imports: [DbModule],
+  imports: [],
   controllers: [FavoriteController],
   providers: [FavoriteService],
 })

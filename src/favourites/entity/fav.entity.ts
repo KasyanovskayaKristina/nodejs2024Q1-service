@@ -1,54 +1,32 @@
+import { Album } from 'src/albums/entity/album.entity';
+import { Artist } from 'src/artist/entity/artist.entity';
+import { Track } from 'src/tracks/entity/track.entity';
+import { User } from 'src/user/entity/user.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToMany,
+  JoinTable,
+  ManyToOne,
+} from 'typeorm';
+
+@Entity()
 export class Fav {
-  artists: string[];
-  albums: string[];
-  tracks: string[];
-  constructor() {
-    this.artists = [];
-    this.albums = [];
-    this.tracks = [];
-  }
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  getAllFavorites() {
-    return {
-      artists: this.artists,
-      albums: this.albums,
-      tracks: this.tracks,
-    };
-  }
+  @ManyToOne(() => User, (user) => user.favs)
+  user: User;
 
-  getArtistById(artistId: string) {
-    return this.artists.find((_artistId) => _artistId === artistId);
-  }
+  @ManyToMany(() => Artist, { cascade: true })
+  @JoinTable()
+  artists: Artist[];
 
-  addArtist(artistId: string) {
-    this.artists.push(artistId);
-  }
+  @ManyToMany(() => Album, { cascade: true })
+  @JoinTable()
+  albums: Album[];
 
-  removeArtist(artistId: string) {
-    this.artists = this.artists.filter((_artistId) => _artistId !== artistId);
-  }
-
-  getAlbumById(albumId: string) {
-    return this.albums.find((_albumId) => _albumId === albumId);
-  }
-
-  addAlbum(albumId: string) {
-    this.albums.push(albumId);
-  }
-
-  removeAlbum(albumId: string) {
-    this.albums = this.albums.filter((_albumId) => _albumId !== albumId);
-  }
-
-  getTrackById(trackId: string) {
-    return this.tracks.find((_trackId) => _trackId === trackId);
-  }
-
-  addTrack(trackId: string) {
-    this.tracks.push(trackId);
-  }
-
-  removeTrack(trackId: string) {
-    this.tracks = this.tracks.filter((_trackId) => _trackId !== trackId);
-  }
+  @ManyToMany(() => Track, { cascade: true })
+  @JoinTable()
+  tracks: Track[];
 }

@@ -9,45 +9,66 @@ import {
 } from '@nestjs/common';
 import { FavoriteService } from 'src/favourites/favorite.service';
 
-@Controller('favs')
+@Controller('favs/:userId')
 export class FavoriteController {
-  constructor(private readonly favsService: FavoriteService) {}
+  constructor(private readonly favService: FavoriteService) {}
 
   @Get()
-  findAll() {
-    return this.favsService.findAll();
+  findAllFavorites(@Param('userId') userId: string) {
+    return this.favService.findAllFavs(userId);
   }
 
   @HttpCode(HttpStatus.CREATED)
-  @Post('artist/:id')
-  addArtist(@Param('id') id: string) {
-    return this.favsService.addArtist(id);
+  @Post('artist/:artistId')
+  addArtistToFavorites(
+    @Param('userId') userId: string,
+    @Param('artistId') artistId: string,
+  ) {
+    return this.favService.addArtistToFavs(userId, artistId);
   }
+
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Delete('artist/:id')
-  removeArtist(@Param('id') id: string) {
-    return this.favsService.removeArtist(id);
+  @Delete('artist/:artistId')
+  removeArtistFromFavorites(
+    @Param('userId') userId: string,
+    @Param('artistId') artistId: string,
+  ) {
+    return this.favService.removeArtistFromFavs(userId, artistId);
   }
 
   @HttpCode(HttpStatus.CREATED)
-  @Post('album/:id')
-  addAlbum(@Param('id') id: string) {
-    return this.favsService.addAlbum(id);
+  @Post('album/:albumId')
+  addAlbumToFavorites(
+    @Param('userId') userId: string,
+    @Param('albumId') albumId: string,
+  ) {
+    return this.favService.addAlbumToFavs(userId, albumId);
   }
+
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Delete('album/:id')
-  removeAlbum(@Param('id') id: string) {
-    return this.favsService.removeAlbum(id);
+  @Delete('album/:albumId')
+  removeAlbumFromFavorites(
+    @Param('userId') userId: string,
+    @Param('albumId') albumId: string,
+  ) {
+    return this.favService.removeAlbumFromFavs(userId, albumId);
   }
 
   @HttpCode(HttpStatus.CREATED)
-  @Post('track/:id')
-  addTrack(@Param('id') id: string) {
-    return this.favsService.addTrack(id);
+  @Post('track/:trackId')
+  addTrackToFavorites(
+    @Param('userId') userId: string,
+    @Param('trackId') trackId: string,
+  ) {
+    return this.favService.addTrackToFavs(userId, trackId);
   }
+
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Delete('track/:id')
-  removeTrack(@Param('id') id: string) {
-    return this.favsService.removeTrack(id);
+  @Delete('track/:trackId')
+  removeTrackFromFavorites(
+    @Param('userId') userId: string,
+    @Param('trackId') trackId: string,
+  ) {
+    return this.favService.removeTrackFromFavs(userId, trackId);
   }
 }
